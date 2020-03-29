@@ -1,0 +1,10 @@
+.outter-wrapper {
+  margin-top: 20px;
+  width: 100%;
+  font-size: 16px;
+  display: flex;
+
+  .inner-wrapper {
+    flex: 1;
+  }
+}
