@@ -24,6 +24,7 @@ export const SortableContainer = (props:SortableContainerProps) => {
   const [container_border, set_container_border] = useState<ContainerBorder>(undefined)
   const container = useRef<HTMLDivElement>(null)
 
+  // 更新边界
   useEffect(() => {
     if (container && container.current) {
       const { top, bottom } = container.current.getBoundingClientRect();

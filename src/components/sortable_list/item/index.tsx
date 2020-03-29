@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { HandleIcon } from '../../icon';
 import { MovingItem, ContainerBorder } from '../def';
+import * as U from '../../../modules/utils';
 import './style.scss';
 
 const { useState, useRef, useEffect } = React;
@@ -174,7 +175,7 @@ export const SortableItem = (props:SortableItemProps) => {
             {}         
         }
         onTouchStart={handle_touch_start}
-        onTouchMove={handle_touch_move}
+        onTouchMove={U.throttle(handle_touch_move, 50)}
         onTouchEnd={handle_touch_end}
         ref={item_ref}
     >

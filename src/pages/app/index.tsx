@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { Header } from '../../components/header';
+import { Tips } from '../../components/tips';
 import { SortableContainer } from '../../components/sortable_list';
 import * as U from '../../modules/utils';
 import './style.scss';
@@ -21,7 +22,8 @@ export const App = () => {
   return (
     <div className="container">
       <Header />
-      <SortableContainer items={items} on_sorted_end={on_sorted_end} />
+      {U.is_pc() && <Tips text="Please open with your phone" type="error" />}
+      {U.is_mobile() && <SortableContainer items={items} on_sorted_end={on_sorted_end} />}
     </div>
   )
 }
