@@ -180,7 +180,7 @@ export const SortableItem = (props:SortableItemProps) => {
     >
       <div className="item-property">
         <div className="no-wrapper">
-          <div className="prefix-no">{index}</div>
+          <div className="prefix-no">{sorted_items.indexOf(value)}</div>
         </div>
         <div className="item-value">{value}</div>
       </div>
