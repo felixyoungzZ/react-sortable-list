@@ -14,9 +14,13 @@ interface SortableContainerProps {
 
 export const SortableContainer = (props:SortableContainerProps) => {
   const { items, on_sorted_end } = props;
+  // 记录是否正在拖拽排序
   const [is_sorting, set_sorting] = useState(false);
+  // 储存每一次移动的结果
   const [sorted_items, set_sorted_items] = useState([...items]);
+  // 当前正在移动的 item
   const [moving_item, set_moving_item] = useState<MovingItem>(undefined)
+  // 容器边界
   const [container_border, set_container_border] = useState<ContainerBorder>(undefined)
   const container = useRef<HTMLDivElement>(null)
 
