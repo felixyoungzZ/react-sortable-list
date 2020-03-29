@@ -1,22 +1,52 @@
 import * as React from 'react';
 
 import { SortableItem } from './item';
+import { MovingItem, ContainerBorder } from './def';
+import * as U from '../../modules/utils';
 import './style.scss';
 
-const { useState, useRef } = React;
+const { useState, useRef, useEffect } = React;
 
 interface SortableContainerProps {
   items:string[];
-  on_sorted_end:(new_idx:number, old_idx:number) => void;
+  on_sorted_end:(items:string[]) => void;
 }
 
 export const SortableContainer = (props:SortableContainerProps) => {
   const { items, on_sorted_end } = props;
-  const [moving_item_top, set_moving_item_top] = useState(null);
-  const container_el = useRef<HTMLDivElement>(null)
+  const [is_sorting, set_sorting] = useState(false);
+  const [sorted_items, set_sorted_items] = useState([...items]);
+  const [moving_item, set_moving_item] = useState<MovingItem>(undefined)
+  const [container_border, set_container_border] = useState<ContainerBorder>(undefined)
+  const container = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (container && container.current) {
+      const { top, bottom } = container.current.getBoundingClientRect();
+
+      set_container_border({ top, bottom });
+    }
+  }, [container])
+
+  const handle_context_menu = (e:any) => {
+    e.preventDefault();
+  }
+
+  const on_sorted = (old_idx:number, new_idx:number) => {
+    const new_sorted_items = U.swap(old_idx, new_idx, sorted_items);
+    set_sorted_items(new_sorted_items);
+  }
+
+  const handle_sorted_end = () => {
+    on_sorted_end([...sorted_items]);
+  }
 
   return (
-    <div className="outter-wrapper">
+    <div
+        className="outter-wrapper"
+        onContextMenu={handle_context_menu}
+        ref={container}
+    >
       <ul className="inner-wrapper">
         {
           items.map((item, index) => (
@@ -24,10 +54,14 @@ export const SortableContainer = (props:SortableContainerProps) => {
                 key={`item-${item}`}
                 index={index}
                 value={item}
-                container={container_el.current}
-                moving_item_top={moving_item_top}
-                set_moving_item_top={set_moving_item_top}
-                on_sorted_end={on_sorted_end}
+                on_sorted={on_sorted}
+                handle_sorted_end={handle_sorted_end}
+                moving_item={moving_item}
+                sorted_items={sorted_items}
+                set_moving_item={set_moving_item}
+                container_border={container_border}
+                is_sorting={is_sorting}
+                set_sorting={set_sorting}
             />
           ))
         }

@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { HandleIcon } from '../../icon';
+import { MovingItem, ContainerBorder } from '../def';
 import './style.scss';
 
 const { useState, useRef, useEffect } = React;
@@ -8,10 +9,14 @@ const { useState, useRef, useEffect } = React;
 interface SortableItemProps {
   index:number;
   value:string;
-  moving_item_top:number|null;
-  set_moving_item_top:(top:number) => void;
-  container:HTMLDivElement|null;
-  on_sorted_end:(new_idx:number, old_idx:number) => void;
+  on_sorted:(old_idx:number, new_idx:number) => void;
+  handle_sorted_end:() => void;
+  moving_item?:MovingItem;
+  sorted_items:string[];
+  set_moving_item:(m_item:MovingItem) => void;
+  container_border?:ContainerBorder;
+  is_sorting:boolean;
+  set_sorting:(is_s:boolean) => void;
 }
 
 function usePrevious<T>(value:T) {
@@ -25,80 +30,135 @@ function usePrevious<T>(value:T) {
 const ITEM_HEIGHT = 54;
 
 export const SortableItem = (props:SortableItemProps) => {
-  const { index, value, container, moving_item_top, set_moving_item_top, on_sorted_end } = props;
-  const [y, set_y] = useState(0);
+  const { index, value, on_sorted, handle_sorted_end, moving_item, set_moving_item, container_border, sorted_items, set_sorting, is_sorting } = props;
+  const [is_moving, set_moving] = useState(false);
   const [start_y, set_start_y] = useState(0);
   const [delta_y, set_delta_y] = useState(0);
-  const [is_moving, set_moving] = useState(false);
+  const [transform_y, set_transform_y] = useState(0);
   const item_ref = useRef<HTMLLIElement>(null);
-  const prev_moving_item_top = usePrevious<number>(moving_item_top);
 
-  const is_up = (m_top:number) => !is_moving && ((m_top + ITEM_HEIGHT / 2) > (item_ref && item_ref.current.getBoundingClientRect().top));
+  const prev_moving_item = usePrevious<MovingItem>(moving_item);
+  const prev_is_sorting = usePrevious<boolean>(is_sorting);
 
-  const is_down = (m_top:number) => !is_moving && ((m_top + ITEM_HEIGHT / 2) > (item_ref && item_ref.current.getBoundingClientRect().bottom));
+  const is_below_m_item = (m_top:number) => item_ref.current.getBoundingClientRect().top > m_top + ITEM_HEIGHT / 2;
+  const is_above_m_item = (m_top:number) => item_ref.current.getBoundingClientRect().bottom < m_top + ITEM_HEIGHT / 2;
 
   useEffect(() => {
-    if (moving_item_top == null || prev_moving_item_top == null) {
+    // 重置 offset y
+    if (!prev_is_sorting && is_sorting) {
+    }
+
+    if (is_moving) {
       return;
     }
-
-    if (is_up(moving_item_top) && !is_up(prev_moving_item_top)) {
-      on_sorted_end(index, index - 1);
-    }
-
-    if (is_down(prev_moving_item_top) && !is_down(moving_item_top)) {
-      on_sorted_end(index, index + 1);
-    }
-
-  }, [moving_item_top]);
-
-  const handle_touch_start = (e:React.TouchEvent) => {
-    set_moving(true);
 
     if (!item_ref) {
       return;
     }
 
+    if (!moving_item || !prev_moving_item) {
+      return;
+    }
+
+    // 排序上升
+    if (is_below_m_item(prev_moving_item.top) && !is_below_m_item(moving_item.top)) {
+      on_sorted(index, moving_item.idx);
+    }
+
+    // 排序下降
+    if (is_above_m_item(prev_moving_item.top) && !is_above_m_item(moving_item.top)) {
+      on_sorted(index, moving_item.idx);
+    }
+
+  }, [moving_item])
+
+  // 开始拖拽
+  const handle_touch_start = (e:React.TouchEvent) => {
+    set_moving(true);
     const { pageY } = e.touches[0];
     set_start_y(pageY);
-    set_delta_y(pageY - item_ref.current.getBoundingClientRect().top);
+
+    if (!item_ref || !item_ref.current) {
+      return;
+    }
+
+    const { top } = item_ref.current.getBoundingClientRect();
+
+    set_delta_y(pageY - top);
+    set_moving_item({
+      idx: index,
+      top,
+    });
+    set_sorting(true);
   }
 
+  // 拖拽期间
   const handle_touch_move = (e:React.TouchEvent) => {
     const { pageY } = e.touches[0];
 
-    set_y(pageY - start_y);
-    set_moving_item_top(pageY - delta_y);
+    // 处理边界情况
+    if (container_border)  {
+      const item_top = pageY - delta_y;
+      const item_bottom = item_top + ITEM_HEIGHT;
+
+      const { top, bottom } = container_border;
+      if (item_top < top ) {
+        return;
+      }
+      if (item_bottom > bottom) {
+        return;
+      }
+    }
+
+    // 移动
+    set_transform_y(pageY - start_y);
+
+    const current_top = pageY - delta_y;
+    set_moving_item({
+      idx: index,
+      top: current_top,
+    })
   }
 
+  // 拖拽结束
   const handle_touch_end = (e:React.TouchEvent) => {
     set_moving(false);
     set_start_y(0);
     set_delta_y(0);
-    set_moving_item_top(null);
+    set_transform_y(0);
+    set_moving_item(undefined);
+    set_sorting(false);
+    handle_sorted_end();
   }
 
-  const handle_context_menu = (e:any) => {
-    e.preventDefault();
+  // 拖拽期间的位移
+  let current_transform_y = 0;
+  if (is_moving) {
+    current_transform_y = transform_y;
+  } else {
+    // const new_idx = sorted_items.indexOf(value);
+    // if (new_idx > index) {
+    //   current_transform_y = ITEM_HEIGHT;
+    // } else if (new_idx < index) {
+    //   current_transform_y = -ITEM_HEIGHT;
+    // }
+    current_transform_y = 0;
   }
-
-  const transform_y = is_moving ? y : 0;
 
   return (
     <li
         className={`item ${is_moving ? 'moving' : ''}`}
         style={
-          moving_item_top !== null ?
+          is_sorting ?
             {
-              transform: `translate3d(0, ${transform_y}px, 0)`
+              transform: `translate3d(0, ${current_transform_y}px, 0)`
             } :
-            {}
+            {}         
         }
-        ref={item_ref}
         onTouchStart={handle_touch_start}
-        onTouchMove={is_moving ? handle_touch_move : void(0)}
+        onTouchMove={handle_touch_move}
         onTouchEnd={handle_touch_end}
-        onContextMenu={handle_context_menu}
+        ref={item_ref}
     >
       <div className="item-property">
         <div className="no-wrapper">

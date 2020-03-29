@@ -9,11 +9,13 @@ const {
   useState,
 } = React;
 
-export const App = () => {
-  const [items, set_items] = useState(['选项A', '选项B', '选项C', '选项D']);
+type Items = string[];
 
-  const on_sorted_end = (new_idx:number, old_idx:number) => {
-    set_items((items) => U.swap<string>(new_idx, old_idx, items))
+export const App = () => {
+  const [items, set_items] = useState<Items>(['选项A', '选项B', '选项C', '选项D']);
+
+  const on_sorted_end = (sorted_items:Items) => {
+    set_items(sorted_items)
   }
 
   return (
