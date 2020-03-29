@@ -35,6 +35,7 @@ export const SortableItem = (props:SortableItemProps) => {
   const [start_y, set_start_y] = useState(0);
   const [delta_y, set_delta_y] = useState(0);
   const [transform_y, set_transform_y] = useState(0);
+  const [offset_y, set_offset_y] = useState(0);
   const item_ref = useRef<HTMLLIElement>(null);
 
   const prev_moving_item = usePrevious<MovingItem>(moving_item);
@@ -44,8 +45,8 @@ export const SortableItem = (props:SortableItemProps) => {
   const is_above_m_item = (m_top:number) => item_ref.current.getBoundingClientRect().bottom < m_top + ITEM_HEIGHT / 2;
 
   useEffect(() => {
-    // 重置 offset y
     if (!prev_is_sorting && is_sorting) {
+      set_offset_y(0);
     }
 
     if (is_moving) {
@@ -60,17 +61,40 @@ export const SortableItem = (props:SortableItemProps) => {
       return;
     }
 
+    // 上一次排序结果
+    const idx = sorted_items && sorted_items.indexOf(value);
+
     // 排序上升
     if (is_below_m_item(prev_moving_item.top) && !is_below_m_item(moving_item.top)) {
-      on_sorted(index, moving_item.idx);
+      if (idx - 1 < 0) {
+        return;
+      }
+      on_sorted(idx, idx - 1);
     }
 
     // 排序下降
     if (is_above_m_item(prev_moving_item.top) && !is_above_m_item(moving_item.top)) {
-      on_sorted(index, moving_item.idx);
+      if (idx + 1 > sorted_items.length - 1) {
+        return;
+      }
+      on_sorted(idx, idx + 1);
     }
 
   }, [moving_item])
+
+  useEffect(() => {
+
+    const new_idx = sorted_items.indexOf(value);
+
+    let current_offset_y = 0;
+    if (new_idx > index) {
+      current_offset_y = ITEM_HEIGHT;
+    } else if (new_idx < index) {
+      current_offset_y = -ITEM_HEIGHT;
+    }
+
+    set_offset_y(current_offset_y);
+  }, [...sorted_items])
 
   // 开始拖拽
   const handle_touch_start = (e:React.TouchEvent) => {
@@ -136,18 +160,12 @@ export const SortableItem = (props:SortableItemProps) => {
   if (is_moving) {
     current_transform_y = transform_y;
   } else {
-    // const new_idx = sorted_items.indexOf(value);
-    // if (new_idx > index) {
-    //   current_transform_y = ITEM_HEIGHT;
-    // } else if (new_idx < index) {
-    //   current_transform_y = -ITEM_HEIGHT;
-    // }
-    current_transform_y = 0;
+    current_transform_y = offset_y;
   }
 
   return (
     <li
-        className={`item ${is_moving ? 'moving' : ''}`}
+        className={`item ${is_moving ? 'moving' : ''} ${is_sorting ? 'sorting' : ''}`}
         style={
           is_sorting ?
             {

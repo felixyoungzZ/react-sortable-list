@@ -32,11 +32,13 @@ export const SortableContainer = (props:SortableContainerProps) => {
     e.preventDefault();
   }
 
+  // 每一次的排序结果更新
   const on_sorted = (old_idx:number, new_idx:number) => {
     const new_sorted_items = U.swap(old_idx, new_idx, sorted_items);
     set_sorted_items(new_sorted_items);
   }
 
+  // 拖拽排序完毕更新结果
   const handle_sorted_end = () => {
     on_sorted_end([...sorted_items]);
   }
